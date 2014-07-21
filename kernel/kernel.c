@@ -174,7 +174,7 @@ void *plp(t_param_plp *param_plp){
 					//Pide mem para el prog
 					t_resp_sol_mem *resp_sol = solicitar_mem(men_cod_prog, param_plp->tam_stack,contador_prog);
 
-					if (resp_sol == NULL){
+					if (resp_sol->memoria_insuficiente == MEM_OVERLOAD){
 						txt_write_in_file(plp_log,"Memoria insuficiente para el programa con socket n°:");
 						logear_int(plp_log,i);
 						txt_write_in_file(plp_log,"\n");
