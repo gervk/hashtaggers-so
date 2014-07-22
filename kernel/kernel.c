@@ -460,6 +460,8 @@ void conec_cerrada_cpu(int32_t soc_cpu,t_men_comun *men_cpu){
 		aux_pcb_otros->tipo_fin_ejecucion= CPU_DESCONEC;
 		// Pone el pcb en exit
 		pasar_pcb_exit(aux_pcb_otros);
+	}else{
+		sem_decre(&cant_cpu_libres);
 	}
 	free(aux_cpu);
 	FD_CLR(soc_cpu, &conj_soc_cpus);
@@ -680,9 +682,11 @@ void fin_ejecucion(int32_t tipo,int32_t socket_cpu){
 	pasar_pcb_exit(aux_pcb_otros);
 
 	aux_cpu->id_prog_exec = 0;
+	aux_cpu->soc_prog = 0;
 
 	pthread_mutex_lock(&mutex_uso_cola_cpu);
 	queue_push(cola_cpu,aux_cpu);
+	sem_incre(&cant_cpu_libres);
 	pthread_mutex_unlock(&mutex_uso_cola_cpu);
 }
 
