@@ -174,7 +174,7 @@ void *plp(t_param_plp *param_plp){
 					//Pide mem para el prog
 					t_resp_sol_mem *resp_sol = solicitar_mem(men_cod_prog, param_plp->tam_stack,contador_prog);
 
-					if (resp_sol == NULL){
+					if (resp_sol->memoria_insuficiente == MEM_OVERLOAD){
 						txt_write_in_file(plp_log,"Memoria insuficiente para el programa con socket n°:");
 						logear_int(plp_log,i);
 						txt_write_in_file(plp_log,"\n");
@@ -460,6 +460,8 @@ void conec_cerrada_cpu(int32_t soc_cpu,t_men_comun *men_cpu){
 		aux_pcb_otros->tipo_fin_ejecucion= CPU_DESCONEC;
 		// Pone el pcb en exit
 		pasar_pcb_exit(aux_pcb_otros);
+	}else{
+		sem_decre(&cant_cpu_libres);
 	}
 	free(aux_cpu);
 	FD_CLR(soc_cpu, &conj_soc_cpus);
@@ -680,9 +682,11 @@ void fin_ejecucion(int32_t tipo,int32_t socket_cpu){
 	pasar_pcb_exit(aux_pcb_otros);
 
 	aux_cpu->id_prog_exec = 0;
+	aux_cpu->soc_prog = 0;
 
 	pthread_mutex_lock(&mutex_uso_cola_cpu);
 	queue_push(cola_cpu,aux_cpu);
+	sem_incre(&cant_cpu_libres);
 	pthread_mutex_unlock(&mutex_uso_cola_cpu);
 }
 

@@ -1,4 +1,5 @@
 #include "UMV.h"
+
 int32_t quit_sistema = 1;
 char *mem_prin;
 int32_t retardo = 0;
@@ -173,8 +174,11 @@ void gestionar_alm_seg(int32_t id_proc){
 }
 
 void almacenar_segmento(t_men_comun *aux_men, int32_t id_proc){
-
 	t_seg *aux_seg = buscar_segmento_tipo_seg(id_proc, aux_men->tipo);
+
+	if (aux_seg == NULL)
+		return;
+
 	if (aux_men->tam_dato != aux_seg->tam_seg){
 		printf("ERROR el tamanio:%i del segmento que se va a almacenar es distinto al tamanio:%i del segmento reservado\n",aux_men->tam_dato , aux_seg->tam_seg);
 	}else{
@@ -486,14 +490,12 @@ int32_t crearSegmento(t_men_seg *men_ped){
 	return aux_seg->dir_logica;
 }
 
-
-
 //genera memmoria aleatoria y controla que no se pise la memoria
 int32_t asignarMemoriaAleatoria(int32_t tamanio, int32_t id){
 
 	int32_t ret = (rand());
 	t_seg *nodo;
-	int32_t x =0;
+	int32_t x;
 	int32_t memEstaOk;
 	
 	
@@ -503,28 +505,21 @@ int32_t asignarMemoriaAleatoria(int32_t tamanio, int32_t id){
 	do{
 
 	memEstaOk = 1;
-		for (;x<list_size(list_seg);x++){
-
+		for (x =0;x<list_size(list_seg);x++){
 			nodo = list_get(list_seg,x);
-
 			if (nodo->id_proc == id){
-				if ((((nodo->dir_logica) <= ret) && ((nodo->dir_logica + nodo->tam_seg) >= ret)) || (((nodo->dir_logica) <= ret+tamanio) && ((nodo->dir_logica + nodo->tam_seg) >= ret+tamanio)) || ((ret <= nodo->dir_logica) && (ret >= (nodo->dir_logica+nodo->tam_seg)))){
+				if ((((nodo->dir_logica) <= ret) && ((nodo->dir_logica + nodo->tam_seg) >= ret)) || (((nodo->dir_logica) <= ret+tamanio)
+						&& ((nodo->dir_logica + nodo->tam_seg) >= ret+tamanio)) || ((ret <= nodo->dir_logica) && (ret >= (nodo->dir_logica+nodo->tam_seg)))){
 						memEstaOk=0;
 						ret = (rand());
 				}
-				
 			}
-			
 		}
 		
 	}while(!memEstaOk);
 
 	return ret;
 }
-
-
-
-
 
 int32_t buscar_espacio_mem_prin(int32_t tam_a_reservar){
 	int32_t ind_mem=0,j;
@@ -1029,7 +1024,6 @@ void logear_int(FILE* destino,int32_t un_int){
 	free(aux_string);
 }
 
-
 void logear_char(FILE* destino,char un_char){
 	if (un_char == '\0'){
 		char *aux_string = "\\0";
@@ -1041,232 +1035,3 @@ void logear_char(FILE* destino,char un_char){
 	}
 	txt_write_in_file(destino,"-");
 }
-
-
-
-
-
-
-/*
- *
- * nt32_t crearSegmento(t_men_seg *men_ped){
-	void *lista;
-	int32_t memEstaOk;
-	int32_t tamanio = men_ped->tam_seg;
-	char *id_Prog = string_itoa(men_ped->id_prog);
-
-	pregunta si hay memoria, si no la hay retorna -1
-	int32_t aux_mem_fisica = asignarMemoria(tamanio);
-	if (aux_mem_fisica == -1)
-		return -1;
-
-	TabMen *nodoTab = malloc(sizeof(TabMen));
-	pregunta si en la tabla de programas existe el id de prog,
-		 si no existe se agrega el key al diccionario y si existe
-		 se agrega un nodo a la lista de segmentos, controlando que
-		 la memoria logica no se pise dentro del mismo programa
-	nodoTab->tipo_seg = men_ped->tipo;
-	nodoTab->longitud = tamanio;
-	nodoTab->memFisica = aux_mem_fisica;
-
-	if (dictionary_has_key(tablaProgramas, id_Prog)){
-		lista = dictionary_get(tablaProgramas,id_Prog);
-			controla que no se pise la memoria dentro del mismo programa
-			repitiendo el ciclio hasta que se genere uno valido
-			do {
-			memEstaOk = 1;
-			nodoTab->memLogica = asignarMemoriaAleatoria(tamanio);
-			memEstaOk = controlarMemPisada(lista,nodoTab->memLogica,tamanio);
-			}while (!memEstaOk);
-		list_add(lista,nodoTab);
-	}else{
-		nodoTab->memLogica = asignarMemoriaAleatoria(tamanio);
-		lista = list_create();
-		list_add(lista,nodoTab);
-		dictionary_put(tablaProgramas, id_Prog, lista);
-	}
-	return 0;
-}
-
-int32_t controlarMemPisada(void *lista, int32_t numMemoria, int32_t tamanio){
-	int32_t x;
-	TabMen *nodo;
-	for (x=0;list_size(lista)-1;x++){
-		nodo = list_get(lista,x);
-		if ((((nodo->memLogica) <= numMemoria) && ((nodo->memLogica + nodo->longitud) >= numMemoria)) || (((nodo->memLogica) <= numMemoria+tamanio) && ((nodo->memLogica + nodo->longitud) >= numMemoria+tamanio)) || ((numMemoria <= nodo->memLogica) && (numMemoria >= (nodo->memLogica+nodo->longitud)))){
-				return 0;
-		}
-	}
-	return 1;
-}
-
- int32_t asignarMemoria(int32_t tamanio){
-	ListAuxiliar *p1 = malloc(sizeof(ListAuxiliar));
-	ListAuxiliar *p2 = malloc(sizeof(ListAuxiliar));
-	int32_t x;
-	int32_t espacioDisponible;
-	int32_t hayEspacio;
-	int32_t seCompacto;
-	struct peorEspacio {
-		int32_t espacio;
-		int32_t offset;
-	};
-
-	struct peorEspacio pE;
-
-	seCompacto =0;
-	hayEspacio = 0;
-	se recorre la tabla de segmentos y se crea una lista auxiliar
-	 ordenada segun memoria fisica. Se comparan dos nodos, si hay
-	 espacio entre ellos, se pregunta si ese espacio es suficiente, si
-	 lo es se asigna segun el algoritmo en uso. Si no hay espacio se
-	 compacta y se vuelve a buscar lugar.
-	recorrerTablaSegmentos();
-	list_sort(listaAuxiliar, (void *)compararListaAuxiliar);
-
-	etiqueta_1:
-	for (x=0;x<list_size(listaAuxiliar)-1;x++){
-		p1 = list_get(listaAuxiliar,x);
-		p2 = list_get(listaAuxiliar,x+1);
-
-		if (p2->ptrInicio != (p1->ptrFin) +1){
-			espacioDisponible = (p2->ptrInicio - p1->ptrFin -1);
-			if (espacioDisponible >= tamanio){
-				hayEspacio=1;
-				switch (alg_actual){
-					case'F':
-						return (p1->ptrFin+1);
-						break;
-					case 'W':
-						if (espacioDisponible > pE.espacio){
-							pE.espacio = espacioDisponible;
-							pE.offset = p1->ptrFin+1;
-						}
-						break;
-				}
-			}
-				if (hayEspacio)
-					return pE.offset;
-				if (!hayEspacio && !seCompacto){
-					seCompacto = 1;
-					compactar();
-					goto etiqueta_1;
-				}
-				if (!hayEspacio && seCompacto)
-					return -1;
-		}
-	}
-	return 0;
-}
-
-
- int32_t asignarMemoriaAleatoria(int32_t tamanio){
-	int32_t numero;
-	numero = (rand());
-	return numero;
-
-
-
-
-}
-
-void crearConsola (){
- +	char **arrayComando;
- +	int a;
- +	char entrada[100];
- +
- +	printf("UMV >> ");
- +		gets(entrada);
- +		arrayComando =  string_split(entrada," ");
- +		a = clasificarComando(arrayComando[0]);
- +
- +		while (a != 6)
- +		{
- +			switch (a){
- +				case 1:
- +					operacion(atoi(arrayComando[1]),atoi(arrayComando[2]),atoi(arrayComando[3]),atoi(arrayComando[4]));
- +					break;
- +				case 2:
- +					retardo(atoi(arrayComando[1]));
- +					break;
- +				case 3:
- +					algoritmo(arrayComando[1]);
- +					break;
- +				case 4:
- +					compactar();
- +					break;
- +				case 5:
- +					dump();
- +					break;
- +				default:
- +					printf("Comando desconocido");
- +					break;
- +				}
- +
- +		printf("\nUMV >> ");
- +		gets(entrada);
- +		arrayComando =  string_split(entrada," ");
- +		a = clasificarComando(arrayComando[0]);
- 
- +	ListAuxiliar *p1 = malloc(sizeof(ListAuxiliar));
- +	ListAuxiliar *p2 = malloc(sizeof(ListAuxiliar));
- +	int x;
- +	int espacioDisponible;
- +	int hayEspacio;
- +	int seCompacto;
- +	struct peorEspacio {
- +		int espacio;
- +		int offset;
- +	};
- +
- +	struct peorEspacio pE;
- +
- +	seCompacto =0;
- +	hayEspacio = 0;
- +
- +	recorrerTablaSegmentos();
- +	list_sort(listaAuxiliar, compararListaAuxiliar);
- +
- +	etiqueta_1:
- 
- +	for (x=0;x<list_size(listaAuxiliar)-1;x++){
- +		p1 = list_get(listaAuxiliar,x);
- +		p2 = list_get(listaAuxiliar,x+1);
- +
- +		if (p2->ptrInicio != (p1->ptrFin) +1){
- +			espacioDisponible = (p2->ptrInicio - p1->ptrFin);
- +			if (espacioDisponible >= tamanio)
- +			{
- +				hayEspacio=1;
- +				switch (modoOperacion){
- +					case'F':
- 
- +						{
- +							return (p1->ptrFin+1);
- +							break;
- +						}
- +					case 'W':
- +						{
- +						if (espacioDisponible > pE.espacio){
- +							pE.espacio = espacioDisponible;
- +							pE.offset = p1->ptrFin+1;
- +							}
- +						break;
- +						}
- +				}
- +			}
- +				if (hayEspacio) return pE.offset;
- +				if (!hayEspacio && !seCompacto){
- +					seCompacto = 1;
- +					compactar();
- 
- +					goto etiqueta_1;
- +				}
- +				if (!hayEspacio && seCompacto) return -1;
- +		}
- +	}
- +		}
- +}
- +
- *
- * */
