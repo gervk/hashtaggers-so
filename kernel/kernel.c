@@ -936,28 +936,27 @@ void *manejador_new_ready(){
 }
 
 t_pcb_otros *get_peso_min(){
-
-	int32_t i, peso_min = -1;
+	int i, peso_min = 1000000;
 	t_pcb_otros *aux;
-
-	int32_t tam_cola = queue_size(colas->cola_new);
+	int tam_cola = queue_size(colas->cola_new);
 
 	for (i=0;i < tam_cola;i++){
-
 		aux = queue_pop(colas->cola_new);
-		if(peso_min < aux->peso)
+		if(peso_min > aux->peso)
 			peso_min = aux->peso;
 		queue_push(colas->cola_new,aux);
 	}
 	for (i=0;i < tam_cola;i++){
 		aux = queue_pop(colas->cola_new);
-
 		if (peso_min == aux->peso)
 			return aux;
 		queue_push(colas->cola_new,aux);
 	}
-	return NULL;
+printf("ERROR: get_peso_min()\n");
+return NULL;
 }
+
+
 
 void *manejador_ready_exec(){
 	t_pcb_otros *aux_pcb_otros;
