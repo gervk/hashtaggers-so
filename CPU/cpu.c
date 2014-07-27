@@ -35,16 +35,12 @@ char* etiquetas;
 int32_t fueFinEjecucion = 0, entre_io = 0, huboSegFault = 0;
 FILE *cpu_file_log;
 int32_t pid_cpu;
+int32_t quit_sistema = 1;
 
 int main(){
-	got_usr1 = 0;
 	char *proxInstrucc;
 
 	dic_Variables = dictionary_create();
-
-	sa.sa_handler = signal_handler; // puntero a una funcion handler del signal
-	sa.sa_flags = 0; // flags especiales para afectar el comportamiento de la señal
-	sigemptyset(&sa.sa_mask); // conjunto de señales a bloquear durante la ejecucion del signal-catching function
 
 	cpu_file_log = txt_open_for_append("./CPU/logs/cpu.log");
 	txt_write_in_file(cpu_file_log,"---------------------Nueva ejecucion------------------------------\n");
@@ -67,14 +63,14 @@ int main(){
 	handshake_umv(puertoUmv, ipUmv);
 
 	/*maneja si recibe la señal SIGUSR, hay que revisarlo todavia*/
-	if(sigaction(SIGUSR1, &sa, NULL) == -1){// sigaction permite llamar o especificar la accion asociada a la señal
-		perror("sigaction");
-		exit(1);
-	}
+	signal(SIGUSR1, signal_handler);
+	signal(SIGINT, signal_handler);
 
-	while(!got_usr1){
+	while(quit_sistema){
 		/*recibe un pcb del kernel*/
 		recibirUnPcb();
+		if(pcb == NULL)
+			goto _fin;
 		/* le digo a la UMV q cambie el proceso activo */
 		cambio_PA(pcb->id);
 
@@ -100,7 +96,18 @@ int main(){
 		entre_io = 0;
 		sem_block = 0;
 	}
+	socket_cerrar(socketKernel);
+	socket_cerrar(socketUmv);
+	_fin:
 	return 0;
+}
+
+void signal_handler(int sig){
+	quit_sistema = 0;
+	if (pcb == NULL){
+		socket_cerrar(socketKernel);
+		socket_cerrar(socketUmv);
+	}
 }
 
 void traerIndiceEtiquetas(){
@@ -123,7 +130,20 @@ void traerIndiceEtiquetas(){
 }
 
 void recibirUnPcb(){
-	t_men_quantum_pcb *men_pcb = socket_recv_quantum_pcb(socketKernel);
+	int32_t length = 0;
+	char *aux_len = malloc(sizeof(int32_t));
+	int resultado_recv = recv(socketKernel, aux_len, sizeof(int32_t), MSG_PEEK);
+	if (resultado_recv == -1) return;
+	if (resultado_recv == 0) return;
+	memcpy(&length, aux_len, sizeof(int32_t));
+	free(aux_len);
+	char stream[length];
+	resultado_recv = recv(socketKernel, stream, length, MSG_WAITALL);
+	if (resultado_recv == -1) return;
+	if (resultado_recv == 0) return;
+	if (resultado_recv != length) printf("NO PUDE RECIBIR TODO\n");
+
+	t_men_quantum_pcb *men_pcb = men_deserealizer_quantum_pcb(stream);
 
 	pcb = malloc(sizeof(t_pcb));
 	if((men_pcb->tipo==CONEC_CERRADA) || (men_pcb->tipo!=PCB_Y_QUANTUM)){
@@ -197,33 +217,6 @@ void enviar_pcb_destruir(){
 	t_men_quantum_pcb *men = crear_men_quantum_pcb(PCB_Y_QUANTUM,0, pcb);
 	socket_send_quantum_pcb(socketKernel, men);
 	destruir_quantum_pcb(men);
-}
-
-void signal_handler(int sig){
-	got_usr1 =1;
-
-	txt_write_in_file(cpu_file_log, "Se recibio la SIGUSR1 \n");
-	printf("Se recibio la SIGUSR1\n");
-
-	if (pcb!=NULL){
-		txt_write_in_file(cpu_file_log, "SIGUSR1 - Se termina de ejecutar el quantum actual \n");
-		printf("SIGUSR1 - Se termina de ejecutar el quantum actual\n");
-		for(;(quantum_actual < quantum_max) && (!fueFinEjecucion) && (!entre_io) && (!sem_block);quantum_actual ++){
-			char* proxInstrucc = solicitarProxSentenciaAUmv();
-			analizadorLinea(proxInstrucc, &functions, &kernel_functions);
-			free(proxInstrucc);
-		}
-		enviar_men_comun_destruir(socketKernel, SIGUSR1_CPU_DESCONEC, NULL, 0);
-		enviar_pcb_destruir();
-	}else{
-		enviar_men_comun_destruir(socketKernel, SIGUSR1_CPU_DESCONEC, NULL, 0);
-	}
-
-	txt_write_in_file(cpu_file_log, "Se desconecta la CPU por recibir la señal SIGUSR1. Chau \n");
-	printf("Se desconecta la CPU por recibir la señal SIGUSR1. Chau \n");
-
-	socket_cerrar(socketKernel);
-	socket_cerrar(socketUmv);
 }
 
 void preservarContexto(){

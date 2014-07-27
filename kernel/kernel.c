@@ -457,9 +457,11 @@ void conec_cerrada_cpu(int32_t soc_cpu,t_men_comun *men_cpu){
 	if (aux_cpu->id_prog_exec != 0){
 		// Saca el pcb que corresponde de la cola de ejec a partir del id
 		aux_pcb_otros = get_pcb_otros_exec(aux_cpu->id_prog_exec);
-		aux_pcb_otros->tipo_fin_ejecucion= CPU_DESCONEC;
-		// Pone el pcb en exit
-		pasar_pcb_exit(aux_pcb_otros);
+		pthread_mutex_lock(&mutex_ready);
+		queue_push(colas->cola_ready,aux_pcb_otros);
+		sem_incre(&cant_ready);
+		pthread_mutex_unlock(&mutex_ready);
+
 	}else{
 		sem_decre(&cant_cpu_libres);
 	}
