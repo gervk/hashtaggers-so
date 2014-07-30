@@ -1202,6 +1202,9 @@ t_resp_sol_mem * solicitar_mem(t_men_comun *men_cod_prog, int32_t tam_stack, int
 	if( resp_men_cod->tipo != RESP_MEM_SEG_COD)
 		printf("ERROR: se esperaba %i y obtube un %i\n",RESP_MEM_SEG_COD,resp_men_cod->tipo);
 
+	txt_write_in_file(plp_log,"Seg codigo:");
+	logear_int(plp_log,atoi(resp_men_cod->dato));
+	txt_write_in_file(plp_log,"\n");
 	t_dir_mem dir_mem_cod = atoi(resp_men_cod->dato);
 	resp_sol->dir_seg_codigo = dir_mem_cod;
 
@@ -1222,6 +1225,9 @@ t_resp_sol_mem * solicitar_mem(t_men_comun *men_cod_prog, int32_t tam_stack, int
 	if( resp_mem->tipo != RESP_MEM_IND_ETI)
 		printf("ERROR: se esperaba %i y obtube un %i\n",RESP_MEM_IND_ETI,resp_mem->tipo);
 
+	txt_write_in_file(plp_log,"Seg etiq:");
+	logear_int(plp_log,atoi(resp_mem->dato));
+	txt_write_in_file(plp_log,"\n");
 	resp_sol->dir_indice_etiquetas= atoi(resp_mem->dato);
 
 	//pido mem para el indice de codigo
@@ -1240,6 +1246,9 @@ t_resp_sol_mem * solicitar_mem(t_men_comun *men_cod_prog, int32_t tam_stack, int
 	if( resp_mem->tipo != RESP_MEM_IND_COD)
 		printf("ERROR: se esperaba %i y obtube un %i\n",RESP_MEM_IND_COD,resp_mem->tipo);
 
+	txt_write_in_file(plp_log,"Seg indice de codigo:");
+	logear_int(plp_log,atoi(resp_mem->dato));
+	txt_write_in_file(plp_log,"\n");
 	resp_sol->dir_indice_codigo = atoi(resp_mem->dato);
 
 	//pido mem para el stack
@@ -1257,6 +1266,9 @@ t_resp_sol_mem * solicitar_mem(t_men_comun *men_cod_prog, int32_t tam_stack, int
 	if( resp_mem->tipo != RESP_MEM_SEG_STACK)
 		printf("ERROR: se esperaba %i y obtube un %i\n",RESP_MEM_SEG_STACK,resp_mem->tipo);
 
+	txt_write_in_file(plp_log,"Seg stack:");
+	logear_int(plp_log,atoi(resp_mem->dato));
+	txt_write_in_file(plp_log,"\n");
 	t_dir_mem dir_mem_stack = atoi(resp_mem->dato);
 	resp_sol->dir_seg_stack = dir_mem_stack;
 	destruir_men_comun(resp_mem);
