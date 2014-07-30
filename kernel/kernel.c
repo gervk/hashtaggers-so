@@ -1251,6 +1251,8 @@ t_resp_sol_mem * solicitar_mem(t_men_comun *men_cod_prog, int32_t tam_stack, int
 	txt_write_in_file(plp_log,"\n");
 	resp_sol->dir_indice_codigo = atoi(resp_mem->dato);
 
+	sleep(1);
+
 	//pido mem para el stack
 	ped_mem = crear_men_seg( PED_MEM_SEG_STACK , id_prog, tam_stack);
 	socket_send_seg(soc_umv, ped_mem);
